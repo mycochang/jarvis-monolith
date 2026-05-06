@@ -11,7 +11,7 @@ class STTProvider(ABC):
         """
         Load the model into memory.
         """
-        pass
+        ...
 
     @abstractmethod
     def transcribe(self, audio_data: np.ndarray, sample_rate: int) -> str:
@@ -21,7 +21,7 @@ class STTProvider(ABC):
         Returns:
             str: The transcribed text.
         """
-        pass
+        ...
 
 class AudioProvider(ABC):
     """
@@ -33,7 +33,7 @@ class AudioProvider(ABC):
         """
         Start capturing audio into a buffer.
         """
-        pass
+        ...
 
     @abstractmethod
     def stop_recording(self) -> np.ndarray:
@@ -43,7 +43,7 @@ class AudioProvider(ABC):
         Returns:
             np.ndarray: The captured audio data as a NumPy array.
         """
-        pass
+        ...
 
 class ActionProvider(ABC):
     """
@@ -58,7 +58,7 @@ class ActionProvider(ABC):
         Args:
             text (str): The text to be typed.
         """
-        pass
+        ...
 
 class FeedbackProvider(ABC):
     """
@@ -73,7 +73,7 @@ class FeedbackProvider(ABC):
         Args:
             message (str): The message to display.
         """
-        pass
+        ...
 
     @abstractmethod
     def play_sound(self, sound_name: str) -> None:
@@ -83,4 +83,4 @@ class FeedbackProvider(ABC):
         Args:
             sound_name (str): Identifier for the sound to play.
         """
-        pass
+        ...
