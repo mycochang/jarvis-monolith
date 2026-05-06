@@ -25,3 +25,6 @@
 
 ## Phase 5: Polish & Feedback Adjustments
 - [x] Task: Update `DesktopNotifierAdapter.play_sound` to use the original `aplay` logic pointing to `~/.local/share/voice_assistant/mic_on.wav` and `mic_off.wav`.
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions 6d1b800
