@@ -7,11 +7,11 @@
 - [x] Task: Define `FeedbackProvider` interface outlining methods for user notifications. [d0f562d]
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Define Interfaces (Ports)' (Protocol in workflow.md)
 
-## Phase 2: Implement Adapters for Current Stack
+## Phase 2: Implement Adapters for Current Stack [checkpoint: a26cab8]
 - [x] Task: Implement `FasterWhisperAdapter` conforming to `STTProvider`. [5111793]
 - [x] Task: Implement `SoundDeviceAdapter` conforming to `AudioProvider`. [023e7d5]
 - [x] Task: Implement `YdotoolAdapter` conforming to `ActionProvider`. [9306528]
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Implement Adapters for Current Stack' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Implement Adapters for Current Stack' (Protocol in workflow.md)
 
 ## Phase 3: Core Domain Refactoring
 - [ ] Task: Extract state machine and coordination logic from `jarvis.py` into a `JarvisCore` class.
