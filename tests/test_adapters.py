@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from adapters.faster_whisper_adapter import FasterWhisperAdapter
 from adapters.sound_device_adapter import SoundDeviceAdapter
+from adapters.ydotool_adapter import YdotoolAdapter
 
 def test_faster_whisper_adapter_instantiation():
     # Should instantiate without errors if it implements STTProvider
@@ -44,3 +45,14 @@ def test_sound_device_adapter_flow(mocker):
     assert adapter.is_recording is False
     assert isinstance(result, np.ndarray)
     assert len(result) == 100
+
+def test_ydotool_adapter_type_text(mocker):
+    mock_run = mocker.patch("subprocess.run")
+    adapter = YdotoolAdapter()
+    
+    adapter.type_text("test input")
+    
+    mock_run.assert_called_once_with(
+        ["ydotool", "type", "-d", "1", "-H", "1", "test input "],
+        check=True
+    )
