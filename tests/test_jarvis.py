@@ -14,6 +14,7 @@ def test_main_faster_whisper(mocker):
     mocker.patch("adapters.sound_device_adapter.SoundDeviceAdapter")
     mocker.patch("adapters.faster_whisper_adapter.FasterWhisperAdapter")
     mocker.patch("adapters.ydotool_adapter.YdotoolAdapter")
+    mocker.patch("adapters.desktop_notifier_adapter.DesktopNotifierAdapter")
     mocker.patch("core.domain.JarvisCore")
     
     # Mock evdev devices
@@ -37,6 +38,7 @@ def test_main_moonshine_implemented(mocker):
     mocker.patch("adapters.sound_device_adapter.SoundDeviceAdapter")
     mocker.patch("adapters.moonshine_adapter.MoonshineAdapter")
     mocker.patch("adapters.ydotool_adapter.YdotoolAdapter")
+    mocker.patch("adapters.desktop_notifier_adapter.DesktopNotifierAdapter")
     mocker.patch("core.domain.JarvisCore")
     
     # Mock evdev devices

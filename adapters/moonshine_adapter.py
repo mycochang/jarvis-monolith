@@ -12,10 +12,7 @@ class MoonshineAdapter(STTProvider):
         from moonshine_voice import Transcriber, get_model_for_language
         
         # Download/cache the ONNX weights
-        model_path, model_arch = get_model_for_language(
-            "en", 
-            model_name=f"moonshine/{self.model_size}"
-        )
+        model_path, model_arch = get_model_for_language("en")
         
         # Initialize the ONNX runtime session in RAM
         self.transcriber = Transcriber(model_path=model_path, model_arch=model_arch)
@@ -27,9 +24,16 @@ class MoonshineAdapter(STTProvider):
         # Moonshine expects a python list of floats, not a raw numpy array.
         audio_list = audio_data.tolist()
         
-        text = self.transcriber.transcribe_without_streaming(
+        result = self.transcriber.transcribe_without_streaming(
             audio_list, 
             sample_rate=sample_rate
         )
         
-        return text.strip() if text else ""
+        # Moonshine returns a Transcript object which contains segments/lines.
+        if result and hasattr(result, 'text'):
+            return result.text.strip()
+        elif result and hasattr(result, 'lines'):
+             return " ".join([line.text for line in result.lines]).strip()
+        elif isinstance(result, str):
+            return result.strip()
+        return ""

@@ -25,12 +25,18 @@ class JarvisCore:
         if not self.is_recording:
             self.is_recording = True
             print("[Start Recording]", flush=True)
+            if self.feedback:
+                self.feedback.play_sound("start")
+                self.feedback.notify("Recording... (Speak now)")
             self.audio.start_recording()
 
     def stop_and_transcribe(self):
         if self.is_recording:
             self.is_recording = False
             print("[Stop Recording. Transcribing...]", flush=True)
+            if self.feedback:
+                self.feedback.play_sound("stop")
+                self.feedback.notify("Transcribing...")
             
             audio_data = self.audio.stop_recording()
             

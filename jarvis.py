@@ -8,10 +8,11 @@ from core.domain import JarvisCore
 from adapters.faster_whisper_adapter import FasterWhisperAdapter
 from adapters.sound_device_adapter import SoundDeviceAdapter
 from adapters.ydotool_adapter import YdotoolAdapter
+from adapters.desktop_notifier_adapter import DesktopNotifierAdapter
 
 # --- Configuration ---
 # Allow switching engine via environment variable, default to faster-whisper.
-ENGINE = os.environ.get("JARVIS_ENGINE", "faster-whisper")
+ENGINE = os.environ.get("JARVIS_ENGINE", "moonshine")
 MODEL_SIZE = os.environ.get("JARVIS_MODEL", "Systran/faster-whisper-base.en")
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
@@ -26,6 +27,7 @@ def main():
     # 1. Initialize the correct Adapters
     audio_adapter = SoundDeviceAdapter(sample_rate=SAMPLE_RATE)
     action_adapter = YdotoolAdapter()
+    feedback_adapter = DesktopNotifierAdapter()
     
     if ENGINE == "faster-whisper":
         stt_adapter = FasterWhisperAdapter(
@@ -47,6 +49,7 @@ def main():
         audio_provider=audio_adapter,
         stt_provider=stt_adapter,
         action_provider=action_adapter,
+        feedback_provider=feedback_adapter,
         sample_rate=SAMPLE_RATE
     )
     
@@ -55,7 +58,11 @@ def main():
 
     # 4. Start Event Listener Loop (Primary Driving Adapter logic)
     devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
-    keyboard_devices = [d for d in devices if ecodes.EV_KEY in d.capabilities()]
+    keyboard_devices = [
+        d for d in devices 
+        if ecodes.EV_KEY in d.capabilities() 
+        and "ydotool" not in d.name.lower()
+    ]
 
     if not keyboard_devices:
         print("Error: No keyboards found. Run with sudo or check 'input' group.", file=sys.stderr)
@@ -82,13 +89,18 @@ def main():
                                 modifiers_active.add(MODIFIER_KEY)
                             elif key_event.keystate == key_event.key_up:
                                 modifiers_active.discard(MODIFIER_KEY)
+                                # FAILSAFE: If Ctrl is released while recording, stop!
+                                if core.is_recording:
+                                    core.stop_and_transcribe()
                                 
                         # Handle Trigger
-                        if key_event.scancode == TRIGGER_KEY and MODIFIER_KEY in modifiers_active:
+                        if key_event.scancode == TRIGGER_KEY:
                             if key_event.keystate == key_event.key_down:
-                                core.start_recording()
+                                if MODIFIER_KEY in modifiers_active:
+                                    core.start_recording()
                             elif key_event.keystate == key_event.key_up:
-                                core.stop_and_transcribe()
+                                if core.is_recording:
+                                    core.stop_and_transcribe()
     except KeyboardInterrupt:
         print("\nShutting down gracefully...")
 

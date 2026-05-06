@@ -50,7 +50,7 @@ This repo is entirely self-contained. The AI models are saved directly into the 
 |  2. [sounddevice]     <-- Records Mic directly to RAM (NumPy array)  |
 |           |                                                          |
 |           v (Float32 Array)                                          |
-|  3. [faster-whisper]  <-- CTranslate2 Engine (base.en in RAM)        |
+L53: |  3. [faster-whisper]  <-- CTranslate2 Engine (base.en in RAM)        |
 |           |               (Capped at 4 threads, Zero Disk I/O)       |
 |           v (Text string)                                            |
 |  4. [ydotool]         <-- Spawns subprocess to type text directly    |
