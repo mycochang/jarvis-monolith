@@ -9,7 +9,7 @@
 
 ## Phase 2: Implement Adapters for Current Stack
 - [x] Task: Implement `FasterWhisperAdapter` conforming to `STTProvider`. [5111793]
-- [ ] Task: Implement `SoundDeviceAdapter` conforming to `AudioProvider`.
+- [x] Task: Implement `SoundDeviceAdapter` conforming to `AudioProvider`. [023e7d5]
 - [ ] Task: Implement `YdotoolAdapter` conforming to `ActionProvider`.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Implement Adapters for Current Stack' (Protocol in workflow.md)
 
