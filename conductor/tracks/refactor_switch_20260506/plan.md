@@ -19,6 +19,10 @@
 - [x] Task: Update the main entry point to instantiate adapters and inject them into `JarvisCore`. [ec36d3d]
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Core Domain Refactoring' (Protocol in workflow.md)
 
+## Phase 3.5: Moonshine Adapter Implementation [checkpoint: 4686c8d]
+- [x] Task: Implement `MoonshineAdapter` strictly adhering to the `STTProvider` interface. [4686c8d]
+- [x] Task: Ensure the adapter targets CPU-only inference using the bundled `onnxruntime`. [4686c8d]
+
 ## Phase 4: Testing & Validation
 - [ ] Task: Verify `faster-whisper` transcription works identically to the previous version.
 - [ ] Task: Verify hotkey detection and `ydotool` injection work seamlessly.
