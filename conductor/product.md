@@ -15,8 +15,9 @@ A zero-latency, CPU-only voice dictation tool designed specifically for Linux (W
 
 ## Key Features
 - **Global Hotkey Trigger:** Uses `evdev` to listen for a global `Ctrl+Space` shortcut across all connected input devices.
+- **Interactive HUD:** Provides immediate visual (`notify-send`) and audio (`aplay`) feedback when recording starts and stops to prevent state confusion.
 - **In-Memory Audio Processing:** Captures microphone input directly into a NumPy array using `sounddevice` (no temporary `.wav` files).
-- **Fast Local Transcription:** Utilizes `faster-whisper` (CTranslate2) or optimized alternatives (e.g., Moonshine) to quickly convert speech to text on the CPU.
+- **Switchable STT Engines:** Built on a Hexagonal Architecture, allowing seamless switching between `faster-whisper` and `Moonshine` engines via environment variables (`JARVIS_ENGINE`).
 - **Universal Text Injection:** Spawns a `ydotool` subprocess to instantly type the transcribed text into the currently focused window.
 - **Background Daemon:** Designed to run silently as a `systemd` user service.
 
