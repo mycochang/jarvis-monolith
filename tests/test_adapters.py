@@ -56,3 +56,27 @@ def test_ydotool_adapter_type_text(mocker):
         ["ydotool", "type", "-d", "1", "-H", "1", "test input "],
         check=True
     )
+
+from adapters.moonshine_adapter import MoonshineAdapter
+
+def test_moonshine_adapter_instantiation():
+    adapter = MoonshineAdapter(model_size="base")
+    assert adapter is not None
+
+def test_moonshine_adapter_transcribe(mocker):
+    adapter = MoonshineAdapter(model_size="base")
+    
+    mock_transcriber = mocker.Mock()
+    mock_transcriber.transcribe_without_streaming.return_value = "Hello moonshine."
+    
+    adapter.transcriber = mock_transcriber
+    
+    dummy_audio = np.zeros(16000, dtype=np.float32)
+    result = adapter.transcribe(dummy_audio, 16000)
+    
+    assert result == "Hello moonshine."
+    # The adapter should convert the numpy array to a list as required by Moonshine
+    mock_transcriber.transcribe_without_streaming.assert_called_once()
+    args, kwargs = mock_transcriber.transcribe_without_streaming.call_args
+    assert isinstance(args[0], list)
+    assert kwargs["sample_rate"] == 16000

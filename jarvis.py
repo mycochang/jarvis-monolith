@@ -1,6 +1,7 @@
 import os
 import sys
 import evdev
+import selectors
 from evdev import ecodes
 
 from core.domain import JarvisCore
@@ -34,8 +35,10 @@ def main():
             cpu_threads=CPU_THREADS
         )
     elif ENGINE == "moonshine":
-        # Placeholder for Phase 4 implementation
-        raise NotImplementedError("Moonshine adapter not yet implemented.")
+        from adapters.moonshine_adapter import MoonshineAdapter
+        # Default to the highly accurate, lightweight "base" model for CPU streaming
+        moonshine_size = os.environ.get("JARVIS_MODEL", "base")
+        stt_adapter = MoonshineAdapter(model_size=moonshine_size)
     else:
         raise ValueError(f"Unknown engine: {ENGINE}")
 
@@ -60,9 +63,9 @@ def main():
 
     print(f"[*] Listening on {len(keyboard_devices)} keyboards. Hold Ctrl + Space to dictate.")
 
-    selector = evdev.Selector()
+    selector = selectors.DefaultSelector()
     for dev in keyboard_devices:
-        selector.register(dev, evdev.EVENT_READ)
+        selector.register(dev, selectors.EVENT_READ)
 
     modifiers_active = set()
     try:
