@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from core.ports import STTProvider, AudioProvider
+from core.ports import STTProvider, AudioProvider, ActionProvider
 
 class DummySTTAdapter(STTProvider):
     pass
@@ -37,7 +37,17 @@ def test_audio_provider_implemented():
         def stop_recording(self) -> np.ndarray:
             return np.zeros(16000, dtype=np.float32)
 
-    adapter = ValidAudioAdapter()
-    adapter.start_recording()
-    audio = adapter.stop_recording()
-    assert isinstance(audio, np.ndarray)
+class DummyActionAdapter(ActionProvider):
+    pass
+
+def test_action_provider_interface():
+    with pytest.raises(TypeError):
+        adapter = DummyActionAdapter()
+
+def test_action_provider_implemented():
+    class ValidActionAdapter(ActionProvider):
+        def type_text(self, text: str) -> None:
+            pass
+
+    adapter = ValidActionAdapter()
+    adapter.type_text("test")

@@ -44,3 +44,18 @@ class AudioProvider(ABC):
             np.ndarray: The captured audio data as a NumPy array.
         """
         pass
+
+class ActionProvider(ABC):
+    """
+    Interface for injecting or typing text into the system.
+    """
+
+    @abstractmethod
+    def type_text(self, text: str) -> None:
+        """
+        Simulate typing the provided text.
+        
+        Args:
+            text (str): The text to be typed.
+        """
+        pass
