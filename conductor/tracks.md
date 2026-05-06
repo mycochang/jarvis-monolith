@@ -4,5 +4,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Refactor architecture for switchable STT engines**
+- [x] **Track: Refactor architecture for switchable STT engines**
   *Link: [./tracks/refactor_switch_20260506/](./tracks/refactor_switch_20260506/)*
