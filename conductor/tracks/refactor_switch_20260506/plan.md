@@ -14,7 +14,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Implement Adapters for Current Stack' (Protocol in workflow.md)
 
 ## Phase 3: Core Domain Refactoring
-- [ ] Task: Extract state machine and coordination logic from `jarvis.py` into a `JarvisCore` class.
+- [x] Task: Extract state machine and coordination logic from `jarvis.py` into a `JarvisCore` class. [3f0062f]
 - [ ] Task: Refactor `JarvisCore` to accept Ports via constructor injection.
 - [ ] Task: Update the main entry point to instantiate adapters and inject them into `JarvisCore`.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Core Domain Refactoring' (Protocol in workflow.md)
