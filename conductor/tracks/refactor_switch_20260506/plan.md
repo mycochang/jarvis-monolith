@@ -23,8 +23,5 @@
 - [x] Task: Implement `MoonshineAdapter` strictly adhering to the `STTProvider` interface. [4686c8d]
 - [x] Task: Ensure the adapter targets CPU-only inference using the bundled `onnxruntime`. [4686c8d]
 
-## Phase 4: Testing & Validation [checkpoint: ec3bb8c]
-- [x] Task: Verify `faster-whisper` transcription works identically to the previous version.
-- [x] Task: Verify hotkey detection and `ydotool` injection work seamlessly.
-- [x] Task: Verify latency metrics have not regressed.
-- [x] Task: Conductor - User Manual Verification 'Phase 4: Testing & Validation' (Protocol in workflow.md)
+## Phase 5: Polish & Feedback Adjustments
+- [x] Task: Update `DesktopNotifierAdapter.play_sound` to use the original `aplay` logic pointing to `~/.local/share/voice_assistant/mic_on.wav` and `mic_off.wav`.
