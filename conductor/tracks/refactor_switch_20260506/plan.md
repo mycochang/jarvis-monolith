@@ -24,7 +24,7 @@
 - [x] Task: Ensure the adapter targets CPU-only inference using the bundled `onnxruntime`. [4686c8d]
 
 ## Phase 4: Testing & Validation
-- [ ] Task: Verify `faster-whisper` transcription works identically to the previous version.
-- [ ] Task: Verify hotkey detection and `ydotool` injection work seamlessly.
-- [ ] Task: Verify latency metrics have not regressed.
+- [x] Task: Verify `faster-whisper` transcription works identically to the previous version.
+- [x] Task: Verify hotkey detection and `ydotool` injection work seamlessly.
+- [x] Task: Verify latency metrics have not regressed.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Testing & Validation' (Protocol in workflow.md)
