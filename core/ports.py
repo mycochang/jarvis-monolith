@@ -59,3 +59,28 @@ class ActionProvider(ABC):
             text (str): The text to be typed.
         """
         pass
+
+class FeedbackProvider(ABC):
+    """
+    Interface for providing feedback to the user.
+    """
+
+    @abstractmethod
+    def notify(self, message: str) -> None:
+        """
+        Send a desktop notification.
+        
+        Args:
+            message (str): The message to display.
+        """
+        pass
+
+    @abstractmethod
+    def play_sound(self, sound_name: str) -> None:
+        """
+        Play an audio cue.
+        
+        Args:
+            sound_name (str): Identifier for the sound to play.
+        """
+        pass

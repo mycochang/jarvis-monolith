@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from core.ports import STTProvider, AudioProvider, ActionProvider
+from core.ports import STTProvider, AudioProvider, ActionProvider, FeedbackProvider
 
 class DummySTTAdapter(STTProvider):
     pass
@@ -49,5 +49,20 @@ def test_action_provider_implemented():
         def type_text(self, text: str) -> None:
             pass
 
-    adapter = ValidActionAdapter()
-    adapter.type_text("test")
+class DummyFeedbackAdapter(FeedbackProvider):
+    pass
+
+def test_feedback_provider_interface():
+    with pytest.raises(TypeError):
+        adapter = DummyFeedbackAdapter()
+
+def test_feedback_provider_implemented():
+    class ValidFeedbackAdapter(FeedbackProvider):
+        def notify(self, message: str) -> None:
+            pass
+        def play_sound(self, sound_name: str) -> None:
+            pass
+
+    adapter = ValidFeedbackAdapter()
+    adapter.notify("test")
+    adapter.play_sound("test")
