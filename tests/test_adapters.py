@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from adapters.faster_whisper_adapter import FasterWhisperAdapter
+from adapters.sound_device_adapter import SoundDeviceAdapter
 
 def test_faster_whisper_adapter_instantiation():
     # Should instantiate without errors if it implements STTProvider
@@ -23,3 +24,23 @@ def test_faster_whisper_adapter_transcribe(mocker):
     
     assert result == "Hello world."
     mock_model.transcribe.assert_called_once()
+
+def test_sound_device_adapter_flow(mocker):
+    adapter = SoundDeviceAdapter(sample_rate=16000)
+    
+    # Mock the sounddevice InputStream to avoid actual hardware capture
+    mock_stream = mocker.patch("sounddevice.InputStream")
+    
+    adapter.start_recording()
+    assert adapter.is_recording is True
+    assert adapter.stream is not None
+    
+    # Simulate the callback adding some data
+    dummy_data = np.zeros((100, 1), dtype=np.float32)
+    adapter._audio_callback(dummy_data, 100, None, None)
+    
+    result = adapter.stop_recording()
+    
+    assert adapter.is_recording is False
+    assert isinstance(result, np.ndarray)
+    assert len(result) == 100
