@@ -15,8 +15,8 @@
 
 ## Phase 3: Core Domain Refactoring
 - [x] Task: Extract state machine and coordination logic from `jarvis.py` into a `JarvisCore` class. [3f0062f]
-- [ ] Task: Refactor `JarvisCore` to accept Ports via constructor injection.
-- [ ] Task: Update the main entry point to instantiate adapters and inject them into `JarvisCore`.
+- [x] Task: Refactor `JarvisCore` to accept Ports via constructor injection. [3f0062f]
+- [x] Task: Update the main entry point to instantiate adapters and inject them into `JarvisCore`. [ec36d3d]
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Core Domain Refactoring' (Protocol in workflow.md)
 
 ## Phase 4: Testing & Validation
