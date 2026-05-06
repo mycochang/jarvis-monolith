@@ -8,7 +8,7 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Define Interfaces (Ports)' (Protocol in workflow.md)
 
 ## Phase 2: Implement Adapters for Current Stack
-- [ ] Task: Implement `FasterWhisperAdapter` conforming to `STTProvider`.
+- [x] Task: Implement `FasterWhisperAdapter` conforming to `STTProvider`. [5111793]
 - [ ] Task: Implement `SoundDeviceAdapter` conforming to `AudioProvider`.
 - [ ] Task: Implement `YdotoolAdapter` conforming to `ActionProvider`.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Implement Adapters for Current Stack' (Protocol in workflow.md)
