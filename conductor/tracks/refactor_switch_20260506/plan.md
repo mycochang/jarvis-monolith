@@ -3,7 +3,7 @@
 ## Phase 1: Define Interfaces (Ports)
 - [x] Task: Define `STTProvider` interface outlining methods for model loading and transcription. [dfa4908]
 - [x] Task: Define `AudioProvider` interface outlining methods for capturing audio arrays. [842eb9e]
-- [ ] Task: Define `ActionProvider` interface outlining methods for text injection.
+- [x] Task: Define `ActionProvider` interface outlining methods for text injection. [079eb8f]
 - [ ] Task: Define `FeedbackProvider` interface outlining methods for user notifications.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Define Interfaces (Ports)' (Protocol in workflow.md)
 
