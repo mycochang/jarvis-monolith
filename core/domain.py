@@ -1,0 +1,54 @@
+import sys
+import threading
+from core.ports import STTProvider, AudioProvider, ActionProvider, FeedbackProvider
+
+class JarvisCore:
+    def __init__(self, 
+                 audio_provider: AudioProvider, 
+                 stt_provider: STTProvider, 
+                 action_provider: ActionProvider,
+                 feedback_provider: FeedbackProvider = None,
+                 sample_rate: int = 16000):
+        self.audio = audio_provider
+        self.stt = stt_provider
+        self.action = action_provider
+        self.feedback = feedback_provider
+        self.sample_rate = sample_rate
+        self.is_recording = False
+
+    def initialize(self):
+        print("[*] Initializing STT Model. This may take a moment...", flush=True)
+        self.stt.load_model()
+        print("[*] Model loaded. Ready.", flush=True)
+
+    def start_recording(self):
+        if not self.is_recording:
+            self.is_recording = True
+            print("[Start Recording]", flush=True)
+            self.audio.start_recording()
+
+    def stop_and_transcribe(self):
+        if self.is_recording:
+            self.is_recording = False
+            print("[Stop Recording. Transcribing...]", flush=True)
+            
+            audio_data = self.audio.stop_recording()
+            
+            if len(audio_data) == 0:
+                print("[-] No audio recorded.", flush=True)
+                return
+
+            def _transcribe_and_type():
+                try:
+                    text = self.stt.transcribe(audio_data, self.sample_rate)
+                    if text:
+                        print(f"Result: {text}", flush=True)
+                        self.action.type_text(text)
+                except Exception as e:
+                    print(f"Transcription error: {e}", file=sys.stderr, flush=True)
+
+            # Fire off the transcription in a background thread so we don't 
+            # block the evdev listener loop.
+            t = threading.Thread(target=_transcribe_and_type)
+            t.daemon = True
+            t.start()
