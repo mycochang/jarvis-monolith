@@ -1,0 +1,8 @@
+{
+  "track_id": "refactor_switch_20260506",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-05-06T13:21:40Z",
+  "updated_at": "2026-05-06T13:21:40Z",
+  "description": "Refactor architecture for switchable STT engines"
+}
