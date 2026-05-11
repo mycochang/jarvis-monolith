@@ -11,6 +11,8 @@ from faster_whisper import WhisperModel
 import evdev
 from evdev import ecodes
 
+import queue
+
 # --- Mindful Configuration ---
 MODEL_SIZE = os.environ.get("JARVIS_MODEL", "Systran/faster-whisper-base.en")
 DEVICE = "cpu"
@@ -119,6 +121,7 @@ class JarvisMonolith:
             samplerate=SAMPLE_RATE,
             channels=1,
             dtype="int16",
+            device="pulse",
             callback=self.audio_callback,
         )
         self.stream.start()
@@ -128,11 +131,12 @@ class JarvisMonolith:
             if not self.is_recording:
                 return
             self.is_recording = False
-
-        if self.stream:
-            self.stream.stop()
-            self.stream.close()
+            stream_to_close = self.stream
             self.stream = None
+
+        if stream_to_close:
+            stream_to_close.stop()
+            stream_to_close.close()
 
         play_sound("off")
         notify("⏳ Processing...")
@@ -152,7 +156,9 @@ class JarvisMonolith:
 
         try:
             start_time = time.time()
+            print("Before transcribe...")
             segments, _ = self.model.transcribe(audio_data_float32, beam_size=5)
+            print("After transcribe...")
             text = " ".join([s.text for s in segments]).strip()
 
             latency = (time.time() - start_time) * 1000

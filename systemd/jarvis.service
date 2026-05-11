@@ -4,8 +4,9 @@ After=network.target ydotoold.service
 
 [Service]
 Type=simple
+Environment="LD_PRELOAD=/usr/lib/libstdc++.so.6"
 # Must use the uv virtual environment Python inside the new repo
-ExecStart=/home/mchang/repos/jarvis-monolith/.venv/bin/python /home/mchang/repos/jarvis-monolith/jarvis.py
+ExecStart=/usr/bin/env PYTHONUNBUFFERED=1 /home/arborinisght/repos/jarvis-monolith/.venv/bin/python /home/arborinisght/repos/jarvis-monolith/jarvis.py
 Restart=always
 RestartSec=3
 
