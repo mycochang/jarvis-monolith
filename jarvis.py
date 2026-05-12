@@ -161,7 +161,7 @@ class JarvisMonolith:
             for line in transcript.lines:
                 t = line.text.strip()
                 # Remove common hallucinations at the start of any segment
-                t = re.sub(r'^(?i)(yeah|thank you)\b[.,!?]*\s*', '', t)
+                t = re.sub(r'(?i)^(yeah|thank you)\b[.,!?]*\s*', '', t)
                 # Remove common hallucinations at the end
                 t = re.sub(r'(?i)\s*(thank you\.|thank you for watching\.?)$', '', t)
                 if t:
