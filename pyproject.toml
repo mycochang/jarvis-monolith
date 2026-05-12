@@ -9,4 +9,7 @@ dependencies = [
     "numpy",
     "scipy",
     "evdev",
+    "useful-moonshine>=20241016",
+    "onnxruntime==1.19.2",
+    "moonshine-voice>=0.0.59",
 ]

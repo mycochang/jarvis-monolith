@@ -7,11 +7,12 @@ import threading
 import time
 import sounddevice as sd
 import numpy as np
-from faster_whisper import WhisperModel
+from moonshine_voice import Transcriber, get_model_for_language
 import evdev
 from evdev import ecodes
 
 import queue
+import re
 
 # --- Mindful Configuration ---
 MODEL_SIZE = os.environ.get("JARVIS_MODEL", "Systran/faster-whisper-base.en")
@@ -59,14 +60,9 @@ def type_text(text):
 
 class JarvisMonolith:
     def __init__(self):
-        print(f"Loading {MODEL_SIZE} into RAM from {LOCAL_MODEL_DIR}...")
-        self.model = WhisperModel(
-            MODEL_SIZE,
-            device=DEVICE,
-            compute_type=COMPUTE_TYPE,
-            cpu_threads=CPU_THREADS,
-            download_root=LOCAL_MODEL_DIR,
-        )
+        print(f"Loading Moonshine model '{MODEL_SIZE}' into RAM...")
+        model_path, model_arch = get_model_for_language("en")
+        self.model = Transcriber(model_path=model_path, model_arch=model_arch)
         print("Model loaded. Ready.")
 
         self.keyboards = self.find_keyboards()
@@ -157,9 +153,21 @@ class JarvisMonolith:
         try:
             start_time = time.time()
             print("Before transcribe...")
-            segments, _ = self.model.transcribe(audio_data_float32, beam_size=5)
+            transcript = self.model.transcribe_without_streaming(audio_data_float32, SAMPLE_RATE)
             print("After transcribe...")
-            text = " ".join([s.text for s in segments]).strip()
+            
+            # Temporary mitigation for Moonshine hallucination bug (#1)
+            cleaned_lines = []
+            for line in transcript.lines:
+                t = line.text.strip()
+                # Remove common hallucinations at the start of any segment
+                t = re.sub(r'^(?i)(yeah|thank you)\b[.,!?]*\s*', '', t)
+                # Remove common hallucinations at the end
+                t = re.sub(r'(?i)\s*(thank you\.|thank you for watching\.?)$', '', t)
+                if t:
+                    cleaned_lines.append(t)
+                    
+            text = " ".join(cleaned_lines).strip()
 
             latency = (time.time() - start_time) * 1000
             print(f"Result ({latency:.0f}ms): {text}")
