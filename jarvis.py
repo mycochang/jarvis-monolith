@@ -170,7 +170,7 @@ class JarvisMonolith:
             text = " ".join(cleaned_lines).strip()
 
             latency = (time.time() - start_time) * 1000
-            print(f"Result ({latency:.0f}ms): {text}")
+            print(f"Result ({latency:.0f}ms): [Transcribed {len(text)} characters]")
 
             if text:
                 type_text(text)
