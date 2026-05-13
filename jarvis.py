@@ -120,6 +120,7 @@ class JarvisMonolith:
             samplerate=SAMPLE_RATE,
             channels=1,
             dtype="int16",
+            device="pulse",
             callback=self.audio_callback,
         )
         self.stream.start()
