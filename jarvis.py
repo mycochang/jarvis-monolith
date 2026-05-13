@@ -38,14 +38,16 @@ def play_sound(sound_type):
         f"{os.environ.get('HOME')}/.local/share/voice_assistant/mic_{sound_type}.wav"
     )
     if os.path.exists(sound_file):
-        subprocess.Popen(["aplay", "-q", sound_file], stderr=subprocess.DEVNULL)
+        # Using pw-play to natively control PipeWire volume (0.0 to 1.0)
+        # Volume set to 15% so it's a subtle audio cue.
+        subprocess.Popen(["pw-play", "--volume", "0.15", sound_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def type_text(text):
     """
     Direct, Wayland-safe injection.
-    We drop delay to 1ms and hold to 1ms.
-    This gives 500 characters per second: blazingly fast but still visually typed out character-by-character.
+    Setting hold/delay to 0ms causes Wayland to drop the key events.
+    2ms delay gives ~250-500 chars/second without being dropped.
     """
     if not text:
         return
@@ -89,8 +91,9 @@ class JarvisMonolith:
             try:
                 dev = evdev.InputDevice(path)
                 caps = dev.capabilities()
-                if ecodes.EV_KEY in caps and ecodes.KEY_SPACE in caps[ecodes.EV_KEY]:
-                    keyboards.append(dev)
+                if ecodes.EV_KEY in caps and ecodes.KEY_COMPOSE in caps[ecodes.EV_KEY]:
+                    if "ydotool" not in dev.name.lower():
+                        keyboards.append(dev)
             except Exception:
                 pass
         return keyboards
@@ -117,7 +120,6 @@ class JarvisMonolith:
             samplerate=SAMPLE_RATE,
             channels=1,
             dtype="int16",
-            device="pulse",
             callback=self.audio_callback,
         )
         self.stream.start()
@@ -152,22 +154,43 @@ class JarvisMonolith:
 
         try:
             start_time = time.time()
-            print("Before transcribe...")
-            transcript = self.model.transcribe_without_streaming(audio_data_float32, SAMPLE_RATE)
-            print("After transcribe...")
             
-            # Temporary mitigation for Moonshine hallucination bug (#1)
-            cleaned_lines = []
-            for line in transcript.lines:
-                t = line.text.strip()
-                # Remove common hallucinations at the start of any segment
-                t = re.sub(r'(?i)^(yeah|thank you)\b[.,!?]*\s*', '', t)
-                # Remove common hallucinations at the end
-                t = re.sub(r'(?i)\s*(thank you\.|thank you for watching\.?)$', '', t)
-                if t:
-                    cleaned_lines.append(t)
+            # Chunk the audio to prevent Moonshine context limits/crashing on long audio
+            # 25 seconds with a 2-second overlap ensures words at boundaries aren't chopped.
+            CHUNK_SIZE_SEC = 25
+            OVERLAP_SEC = 2
+            CHUNK_SAMPLES = SAMPLE_RATE * CHUNK_SIZE_SEC
+            STEP_SAMPLES = SAMPLE_RATE * (CHUNK_SIZE_SEC - OVERLAP_SEC)
+            
+            full_text_chunks = []
+            
+            for i in range(0, len(audio_data_float32), STEP_SAMPLES):
+                chunk = audio_data_float32[i : i + CHUNK_SAMPLES]
+                # If chunk is less than 1 second, skip it
+                if len(chunk) < SAMPLE_RATE * 1.0:
+                    break
                     
-            text = " ".join(cleaned_lines).strip()
+                transcript = self.model.transcribe_without_streaming(chunk, SAMPLE_RATE)
+                
+                raw_chunk_text = " ".join([line.text for line in transcript.lines]).strip()
+                print(f"Raw chunk [{i//STEP_SAMPLES}]: '{raw_chunk_text}'")
+                
+                # Temporary mitigation for Moonshine hallucination bug (#1)
+                cleaned_lines = []
+                for line in transcript.lines:
+                    t = line.text.strip()
+                    # Remove common hallucinations at the start of any segment
+                    t = re.sub(r'(?i)^(yeah|thank you)\b[.,!?]*\s*', '', t)
+                    # Remove common hallucinations at the end
+                    t = re.sub(r'(?i)\s*(thank you\.|thank you for watching\.?)$', '', t)
+                    if t:
+                        cleaned_lines.append(t)
+                        
+                chunk_text = " ".join(cleaned_lines).strip()
+                if chunk_text:
+                    full_text_chunks.append(chunk_text)
+                    
+            text = " ".join(full_text_chunks).strip()
 
             latency = (time.time() - start_time) * 1000
             print(f"Result ({latency:.0f}ms): [Transcribed {len(text)} characters]")
@@ -196,19 +219,9 @@ class JarvisMonolith:
             except AttributeError:
                 return
 
-            if any("CTRL" in k for k in keycodes):
+            if any("KEY_COMPOSE" in k for k in keycodes):
                 if key_event.keystate == key_event.key_down:
-                    self.ctrl_held = True
-                elif key_event.keystate == key_event.key_up:
-                    self.ctrl_held = False
-                    if self.is_recording:
-                        threading.Thread(
-                            target=self.stop_recording_and_transcribe
-                        ).start()
-
-            if any("KEY_SPACE" in k for k in keycodes):
-                if key_event.keystate == key_event.key_down:
-                    if self.ctrl_held and not self.is_recording:
+                    if not self.is_recording:
                         self.start_recording()
                 elif key_event.keystate == key_event.key_up:
                     if self.is_recording:
@@ -226,7 +239,7 @@ class JarvisMonolith:
             print(f"Device {device.name} disconnected: {e}")
 
     def run(self):
-        print("\nJarvis Active. Hold 'Ctrl + Space' on ANY keyboard to talk.")
+        print("\nJarvis Active. Hold your dedicated key (Menu/Compose) on ANY keyboard to talk.")
         threads = []
         for kb in self.keyboards:
             t = threading.Thread(target=self.listen_loop, args=(kb,), daemon=True)

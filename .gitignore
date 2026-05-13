@@ -3,3 +3,5 @@ models/
 __pycache__/
 *.pyc
 .ydotool_socket
+GEMINI.md
+docs/LESSONS_LEARNED.md
