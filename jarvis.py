@@ -21,6 +21,7 @@ COMPUTE_TYPE = "int8"
 CPU_THREADS = int(os.environ.get("JARVIS_THREADS", 4))
 SAMPLE_RATE = 16000
 
+BUTTON_TRIGGER_DEVICE = os.environ.get("JARVIS_BUTTON_DEVICE", "PixArt Trust OpticalMouse")
 # Keep models air-gapped inside this repo
 LOCAL_MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
@@ -91,7 +92,10 @@ class JarvisMonolith:
             try:
                 dev = evdev.InputDevice(path)
                 caps = dev.capabilities()
-                if ecodes.EV_KEY in caps and ecodes.KEY_COMPOSE in caps[ecodes.EV_KEY]:
+                keys = caps.get(ecodes.EV_KEY, [])
+                if ecodes.KEY_COMPOSE in keys or (
+                    BUTTON_TRIGGER_DEVICE in dev.name and ecodes.BTN_RIGHT in keys
+                ):
                     if "ydotool" not in dev.name.lower():
                         keyboards.append(dev)
             except Exception:
@@ -220,7 +224,7 @@ class JarvisMonolith:
             except AttributeError:
                 return
 
-            if any("KEY_COMPOSE" in k for k in keycodes):
+            if any(k in ("KEY_COMPOSE", "BTN_RIGHT") for k in keycodes):
                 if key_event.keystate == key_event.key_down:
                     if not self.is_recording:
                         self.start_recording()
