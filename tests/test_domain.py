@@ -14,7 +14,7 @@ def test_jarvis_core_start_recording(mocker):
     mock_audio.start_recording.assert_called_once()
     assert core.is_recording is True
 
-def test_jarvis_core_stop_and_transcribe(mocker):
+def test_jarvis_core_stop_and_transcribe(mocker, capsys):
     mock_audio = mocker.Mock(spec=AudioProvider)
     mock_stt = mocker.Mock(spec=STTProvider)
     mock_action = mocker.Mock(spec=ActionProvider)
@@ -35,4 +35,7 @@ def test_jarvis_core_stop_and_transcribe(mocker):
     mock_audio.stop_recording.assert_called_once()
     mock_stt.transcribe.assert_called_once_with(dummy_audio, core.sample_rate)
     mock_action.type_text.assert_called_once_with("hello world")
+    captured = capsys.readouterr()
+    assert "hello world" not in captured.out
+    assert "Result: [Transcribed 11 characters]" in captured.out
     assert core.is_recording is False

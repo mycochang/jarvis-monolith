@@ -11,21 +11,21 @@ from adapters.ydotool_adapter import YdotoolAdapter
 from adapters.desktop_notifier_adapter import DesktopNotifierAdapter
 
 # --- Configuration ---
-# Allow switching engine via environment variable, default to faster-whisper.
+# Allow switching engine via environment variable.
 ENGINE = os.environ.get("JARVIS_ENGINE", "moonshine")
 MODEL_SIZE = os.environ.get("JARVIS_MODEL", "Systran/faster-whisper-base.en")
+AUDIO_DEVICE = os.environ.get("JARVIS_AUDIO_DEVICE", "pulse")
 DEVICE = "cpu"
 COMPUTE_TYPE = "int8"
 CPU_THREADS = int(os.environ.get("JARVIS_THREADS", 4))
 SAMPLE_RATE = 16000
-TRIGGER_KEY = ecodes.KEY_SPACE
-MODIFIER_KEY = ecodes.KEY_LEFTCTRL
+TRIGGER_KEY = ecodes.KEY_COMPOSE
 
 def main():
     print(f"[*] Starting Jarvis Monolith (Engine: {ENGINE})", flush=True)
 
     # 1. Initialize the correct Adapters
-    audio_adapter = SoundDeviceAdapter(sample_rate=SAMPLE_RATE)
+    audio_adapter = SoundDeviceAdapter(sample_rate=SAMPLE_RATE, device=AUDIO_DEVICE)
     action_adapter = YdotoolAdapter()
     feedback_adapter = DesktopNotifierAdapter()
     
@@ -68,13 +68,12 @@ def main():
         print("Error: No keyboards found. Run with sudo or check 'input' group.", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[*] Listening on {len(keyboard_devices)} keyboards. Hold Ctrl + Space to dictate.")
+    print(f"[*] Listening on {len(keyboard_devices)} keyboards. Hold Compose/Menu to dictate.")
 
     selector = selectors.DefaultSelector()
     for dev in keyboard_devices:
         selector.register(dev, selectors.EVENT_READ)
 
-    modifiers_active = set()
     try:
         while True:
             for key, _ in selector.select():
@@ -83,21 +82,9 @@ def main():
                     if event.type == ecodes.EV_KEY:
                         key_event = evdev.categorize(event)
                         
-                        # Track modifiers
-                        if key_event.scancode == MODIFIER_KEY:
-                            if key_event.keystate == key_event.key_down:
-                                modifiers_active.add(MODIFIER_KEY)
-                            elif key_event.keystate == key_event.key_up:
-                                modifiers_active.discard(MODIFIER_KEY)
-                                # FAILSAFE: If Ctrl is released while recording, stop!
-                                if core.is_recording:
-                                    core.stop_and_transcribe()
-                                
-                        # Handle Trigger
                         if key_event.scancode == TRIGGER_KEY:
                             if key_event.keystate == key_event.key_down:
-                                if MODIFIER_KEY in modifiers_active:
-                                    core.start_recording()
+                                core.start_recording()
                             elif key_event.keystate == key_event.key_up:
                                 if core.is_recording:
                                     core.stop_and_transcribe()

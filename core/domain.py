@@ -48,7 +48,7 @@ class JarvisCore:
                 try:
                     text = self.stt.transcribe(audio_data, self.sample_rate)
                     if text:
-                        print(f"Result: {text}", flush=True)
+                        print(f"Result: [Transcribed {len(text)} characters]", flush=True)
                         self.action.type_text(text)
                 except Exception as e:
                     print(f"Transcription error: {e}", file=sys.stderr, flush=True)

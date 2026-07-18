@@ -6,6 +6,9 @@ from evdev import ecodes
 import jarvis
 import selectors
 
+def test_trigger_key_is_dedicated_compose_key():
+    assert jarvis.TRIGGER_KEY == ecodes.KEY_COMPOSE
+
 def test_main_faster_whisper(mocker):
     # Mock environment variables
     mocker.patch("os.environ.get", side_effect=lambda k, d=None: "faster-whisper" if k == "JARVIS_ENGINE" else d)
@@ -19,7 +22,7 @@ def test_main_faster_whisper(mocker):
     
     # Mock evdev devices
     mock_dev = MagicMock()
-    mock_dev.capabilities.return_value = {ecodes.EV_KEY: [ecodes.KEY_SPACE]}
+    mock_dev.capabilities.return_value = {ecodes.EV_KEY: [ecodes.KEY_COMPOSE]}
     mocker.patch("evdev.list_devices", return_value=["/dev/input/event0"])
     mocker.patch("evdev.InputDevice", return_value=mock_dev)
     
@@ -43,7 +46,7 @@ def test_main_moonshine_implemented(mocker):
     
     # Mock evdev devices
     mock_dev = MagicMock()
-    mock_dev.capabilities.return_value = {ecodes.EV_KEY: [ecodes.KEY_SPACE]}
+    mock_dev.capabilities.return_value = {ecodes.EV_KEY: [ecodes.KEY_COMPOSE]}
     mocker.patch("evdev.list_devices", return_value=["/dev/input/event0"])
     mocker.patch("evdev.InputDevice", return_value=mock_dev)
     

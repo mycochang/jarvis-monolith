@@ -4,8 +4,9 @@ import sounddevice as sd
 from core.ports import AudioProvider
 
 class SoundDeviceAdapter(AudioProvider):
-    def __init__(self, sample_rate: int = 16000):
+    def __init__(self, sample_rate: int = 16000, device: str = "pulse"):
         self.sample_rate = sample_rate
+        self.device = device
         self.audio_queue = queue.Queue()
         self.is_recording = False
         self.stream = None
@@ -25,6 +26,7 @@ class SoundDeviceAdapter(AudioProvider):
             samplerate=self.sample_rate,
             channels=1,
             dtype="float32",
+            device=self.device,
             callback=self._audio_callback
         )
         self.stream.start()

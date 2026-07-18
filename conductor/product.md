@@ -14,7 +14,7 @@ A zero-latency, CPU-only voice dictation tool designed specifically for Linux (W
 - **Privacy & Portability:** Everything runs locally. Models are stored in the project directory, making the entire setup air-gappable and portable.
 
 ## Key Features
-- **Global Hotkey Trigger:** Uses `evdev` to listen for a global `Ctrl+Space` shortcut across all connected input devices.
+- **Global Hotkey Trigger:** Uses `evdev` to listen for a dedicated `KEY_COMPOSE` / Menu key shortcut across connected input devices.
 - **Interactive HUD:** Provides immediate visual (`notify-send`) and audio (`aplay`) feedback when recording starts and stops to prevent state confusion.
 - **In-Memory Audio Processing:** Captures microphone input directly into a NumPy array using `sounddevice` (no temporary `.wav` files).
 - **Switchable STT Engines:** Built on a Hexagonal Architecture, allowing seamless switching between `faster-whisper` and `Moonshine` engines via environment variables (`JARVIS_ENGINE`).

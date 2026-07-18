@@ -35,6 +35,7 @@ def test_sound_device_adapter_flow(mocker):
     adapter.start_recording()
     assert adapter.is_recording is True
     assert adapter.stream is not None
+    assert mock_stream.call_args.kwargs["device"] == "pulse"
     
     # Simulate the callback adding some data
     dummy_data = np.zeros((100, 1), dtype=np.float32)

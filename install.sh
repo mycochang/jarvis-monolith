@@ -2,7 +2,7 @@
 # Installation script for Jarvis Monolith
 set -e
 
-echo "🚀 Installing Jarvis Monolith (Ctrl+Space Dictation)"
+echo "🚀 Installing Jarvis Monolith (Compose/Menu Dictation)"
 echo "---------------------------------------------------"
 
 # 1. Input Group Check
@@ -24,8 +24,12 @@ else
     echo "✅ System dependencies installed."
 fi
 
-echo "⚙️  Ensuring ydotoold daemon is running..."
-sudo systemctl enable --now ydotoold 2>/dev/null || true
+echo "⚙️  Ensuring ydotool daemon is running..."
+if systemctl --user cat ydotool.service >/dev/null 2>&1; then
+    systemctl --user enable --now ydotool.service
+else
+    sudo systemctl enable --now ydotoold.service
+fi
 
 # 3. Python Environment
 echo "🐍 Syncing Python dependencies via uv..."
@@ -41,4 +45,4 @@ systemctl --user enable --now jarvis.service
 
 echo "---------------------------------------------------"
 echo "✅ Installation complete! The daemon is running in the background."
-echo "🎙️  Hold 'Ctrl + Space' anywhere to dictate."
+echo "🎙️  Hold the Compose/Menu key anywhere to dictate."

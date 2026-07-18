@@ -1,5 +1,10 @@
 .venv/
 models/
 __pycache__/
+.pytest_cache/
 *.pyc
 .ydotool_socket
+.coverage
+.gemini_security/
+.ruff_cache/
+test_moonshine_runner.py

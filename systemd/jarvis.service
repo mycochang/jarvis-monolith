@@ -1,11 +1,12 @@
 [Unit]
-Description=Jarvis Fast Monolith (Ctrl+Space)
-After=network.target ydotoold.service
+Description=Jarvis Fast Monolith (Compose/Menu)
+After=network.target ydotool.service
 
 [Service]
 Type=simple
+Environment="LD_PRELOAD=/usr/lib/libstdc++.so.6"
 # Must use the uv virtual environment Python inside the new repo
-ExecStart=/home/mchang/repos/jarvis-monolith/.venv/bin/python /home/mchang/repos/jarvis-monolith/jarvis.py
+ExecStart=/usr/bin/env PYTHONUNBUFFERED=1 %h/repos/jarvis-monolith/.venv/bin/python %h/repos/jarvis-monolith/jarvis.py
 Restart=always
 RestartSec=3
 
