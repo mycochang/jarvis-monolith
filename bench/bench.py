@@ -18,6 +18,7 @@ Two lessons are baked in, both learned by getting them wrong:
 """
 import argparse
 import json
+import os
 import re
 import statistics
 import subprocess
@@ -129,7 +130,39 @@ def load_clips():
     return out
 
 
+def _nvidia_lib_dirs() -> list[str]:
+    """Dirs from pip-installed nvidia-* packages; needed when cuBLAS/cuDNN are pip-only."""
+    import site
+    dirs = []
+    for sp in site.getsitepackages():
+        nvidia_root = os.path.join(sp, "nvidia")
+        if os.path.isdir(nvidia_root):
+            for pkg in sorted(os.listdir(nvidia_root)):
+                lib = os.path.join(nvidia_root, pkg, "lib")
+                if os.path.isdir(lib):
+                    dirs.append(lib)
+    return dirs
+
+
+def _ensure_cuda_libs_on_path() -> None:
+    """Re-exec with LD_LIBRARY_PATH patched so libcublas/libcudnn are findable."""
+    _PATCHED = "_BENCH_LD_PATCHED"
+    if os.environ.get(_PATCHED):
+        return
+    extra = _nvidia_lib_dirs()
+    if not extra:
+        return
+    existing = os.environ.get("LD_LIBRARY_PATH", "")
+    parts = extra + ([existing] if existing else [])
+    env = os.environ.copy()
+    env["LD_LIBRARY_PATH"] = ":".join(parts)
+    env[_PATCHED] = "1"
+    os.execve(sys.executable, [sys.executable] + sys.argv, env)
+
+
 def run(configs, repeat, window_s):
+    _ensure_cuda_libs_on_path()
+
     from faster_whisper import WhisperModel
 
     clips = load_clips()
@@ -140,17 +173,26 @@ def run(configs, repeat, window_s):
     print(f"corpus: {len(clips)} clip(s), window={window_s}s, repeat={repeat}")
     print("WER is vs YouTube auto-captions -- ranking signal, NOT ground truth.")
     print("Timing: trust min (least contended). Run under taskset.\n")
-    print(f"{'config':22s} {'WER':>7s} {'min':>8s} {'median':>8s} {'spread':>7s}")
+    print(f"{'config':30s} {'WER':>7s} {'min':>8s} {'median':>8s} {'spread':>7s}")
 
     cache, rows = {}, []
     for spec in configs:
-        alias, _, beam = spec.partition(":")
-        beam = int(beam or 1)
+        # Format: alias:beam[:device[:compute_type]]
+        spec_parts = spec.split(":")
+        alias = spec_parts[0]
+        beam = int(spec_parts[1]) if len(spec_parts) > 1 and spec_parts[1] else 1
+        device = spec_parts[2] if len(spec_parts) > 2 and spec_parts[2] else "cpu"
+        compute_type = spec_parts[3] if len(spec_parts) > 3 and spec_parts[3] else (
+            "float16" if device == "cuda" else "int8"
+        )
         name = ALIASES.get(alias, alias)
-        if name not in cache:
-            cache[name] = WhisperModel(name, device="cpu", compute_type="int8",
-                                       cpu_threads=8, download_root=str(MODELS))
-        model = cache[name]
+        cache_key = (name, device, compute_type)
+        if cache_key not in cache:
+            cache[cache_key] = WhisperModel(
+                name, device=device, compute_type=compute_type,
+                cpu_threads=8, download_root=str(MODELS),
+            )
+        model = cache[cache_key]
 
         times, wers = [], []
         for _, wav_path, ref in clips:
@@ -162,19 +204,19 @@ def run(configs, repeat, window_s):
 
             best_text = ""
             for _ in range(repeat):
-                parts, t0 = [], time.monotonic()
+                run_parts, t0 = [], time.monotonic()
                 for c in chunks:
                     segs, _ = model.transcribe(c, beam_size=beam)
-                    parts.append(" ".join(s.text.strip() for s in segs))
+                    run_parts.append(" ".join(s.text.strip() for s in segs))
                 # per-chunk latency, which is what a dictation press actually costs
                 times.append((time.monotonic() - t0) * 1000 / len(chunks))
-                best_text = " ".join(parts)
+                best_text = " ".join(run_parts)
             wers.append(wer(ref, best_text))
 
         row = (spec, statistics.mean(wers), min(times),
                statistics.median(times), max(times) - min(times))
         rows.append(row)
-        print(f"{row[0]:22s} {row[1]:6.1%} {row[2]:7.0f}ms {row[3]:7.0f}ms {row[4]:6.0f}ms")
+        print(f"{row[0]:30s} {row[1]:6.1%} {row[2]:7.0f}ms {row[3]:7.0f}ms {row[4]:6.0f}ms")
 
     if rows:
         best = min(rows, key=lambda r: r[1])
