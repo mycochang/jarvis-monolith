@@ -15,9 +15,12 @@ from adapters.desktop_notifier_adapter import DesktopNotifierAdapter
 ENGINE = os.environ.get("JARVIS_ENGINE", "moonshine")
 MODEL_SIZE = os.environ.get("JARVIS_MODEL", "Systran/faster-whisper-base.en")
 AUDIO_DEVICE = os.environ.get("JARVIS_AUDIO_DEVICE", "pulse")
-DEVICE = "cpu"
-COMPUTE_TYPE = "int8"
+DEVICE = os.environ.get("JARVIS_DEVICE", "cpu")
+COMPUTE_TYPE = os.environ.get("JARVIS_COMPUTE_TYPE", "int8")
 CPU_THREADS = int(os.environ.get("JARVIS_THREADS", 4))
+# 0 disables either eviction trigger. See README "RAM residency".
+IDLE_UNLOAD_S = float(os.environ.get("JARVIS_IDLE_UNLOAD_S", 300))
+MIN_AVAILABLE_MB = int(os.environ.get("JARVIS_MIN_AVAILABLE_MB", 4096))
 SAMPLE_RATE = 16000
 TRIGGER_KEY = ecodes.KEY_COMPOSE
 
@@ -31,10 +34,12 @@ def main():
     
     if ENGINE == "faster-whisper":
         stt_adapter = FasterWhisperAdapter(
-            model_size=MODEL_SIZE, 
-            device=DEVICE, 
-            compute_type=COMPUTE_TYPE, 
-            cpu_threads=CPU_THREADS
+            model_size=MODEL_SIZE,
+            device=DEVICE,
+            compute_type=COMPUTE_TYPE,
+            cpu_threads=CPU_THREADS,
+            idle_unload_s=IDLE_UNLOAD_S,
+            min_available_mb=MIN_AVAILABLE_MB,
         )
     elif ENGINE == "moonshine":
         from adapters.moonshine_adapter import MoonshineAdapter
