@@ -1,0 +1,9 @@
+{
+  "url": "https://www.youtube.com/watch?v=6m-ZZBCiiEE",
+  "video_id": "6m-ZZBCiiEE",
+  "start_s": 1200,
+  "duration_s": 180,
+  "reference": "youtube-auto-captions",
+  "reference_is_ground_truth": false,
+  "note": "multi-speaker podcast with crosstalk; >> markers are speaker turns"
+}
