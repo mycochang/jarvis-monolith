@@ -38,6 +38,70 @@ Hold the **Compose/Menu** key, speak, and release to type.
 - The systemd service logs status and character counts only, never raw dictated text.
 - Local discoveries live in [`docs/LESSONS_LEARNED.md`](docs/LESSONS_LEARNED.md).
 
+## RAM residency (`faster-whisper` engine)
+
+Weights stay resident for instant dictation, but the adapter evicts them when idle or
+when the machine gets tight, and transparently reloads on the next keypress. Reload is
+~0.6s because eviction drops only the CTranslate2 weights (`unload_model()`), leaving
+tokenizer and feature extractor built; the weights come back off page cache.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `JARVIS_MODEL` | `Systran/faster-whisper-base.en` | Any faster-whisper / CT2 repo id |
+| `JARVIS_IDLE_UNLOAD_S` | `300` | Evict after this many idle seconds; `0` = never |
+| `JARVIS_MIN_AVAILABLE_MB` | `4096` | Evict when `MemAvailable` drops below this; `0` = never |
+| `JARVIS_THREADS` | `4` | CT2 CPU threads |
+| `JARVIS_DEVICE` / `JARVIS_COMPUTE_TYPE` | `cpu` / `int8` | `cuda` + `float16` needs cuBLAS/cuDNN, not installed here |
+
+Measured on this box, `int8` on CPU, 8 threads:
+
+| Model | Resident | Warm load |
+|---|---|---|
+| `base.en` | ~260 MB | 0.6s |
+| `small.en` | ~440 MB | 0.7s |
+| `distil-large-v3.5-ct2` | ~1.900 GB | 1.6s |
+
+Eviction is cheap, so residency is a RAM question. Model choice is not: it costs real
+latency — see [`bench/`](bench/) for the accuracy/latency numbers.
+
+To force eviction before a heavy job, restart the unit — or set a high
+`JARVIS_MIN_AVAILABLE_MB` so the watcher yields automatically under pressure.
+
+## Benchmarking
+
+`bench/` measures latency and accuracy for STT configs against real speech.
+
+```bash
+python bench/bench.py corpus add "<youtube-url>" --at 20:00 --for 3:00
+taskset -c 8-15 python bench/bench.py run --configs base.en:1,small.en:1,small.en:5
+```
+
+Two traps this suite exists to avoid, both hit the hard way:
+
+- **Pin the CPU.** Unpinned on a loaded box, identical work measured 2620–6839ms. That
+  5x spread swamps the ~5% differences you're trying to measure. Trust `min`, not `mean`,
+  and the runner warns when between-config spread is smaller than within-config noise.
+- **The reference must be a different ASR family.** Scoring small Whisper against large
+  Whisper hides their shared failure modes and flatters both. YouTube auto-captions are
+  independent, so disagreement is informative — but they carry their own errors, so
+  absolute WER overstates. Rank configs with it; only a human transcript is ground truth.
+
+Findings so far, on 190s of multi-speaker podcast audio (crosstalk — harder than solo
+dictation, so treat these as rankings, not absolutes):
+
+| Config | WER vs captions | Median |
+|---|---|---|
+| `base.en` beam1 | 22.3% | 1499ms |
+| `small.en` beam1 | 20.4% | 3688ms |
+| `distil-large` beam1 | 19.0% | 15490ms |
+
+**`beam_size` is not worth paying for.** Beam 3 and 5 measured no better than beam 1 at
+either model size (and slightly worse, within noise) while costing up to 1.6x the time.
+Whisper's encoder processes a fixed 30-second window regardless of clip length, so
+latency is dominated by that floor, not by decode width — 12s of pure *silence* still
+costs ~1.4s. This is also why speeding audio up with `ffmpeg atempo` fails: 1.5x tempo
+bought 7% latency for 62% WER. Fewer samples, same padded window, mangled words.
+
 ## Architecture & Replicability
 This repo is entirely self-contained. The AI models are saved directly into the `models/` directory, so you can back up this entire folder to an external drive and run it air-gapped on any Linux machine.
 
