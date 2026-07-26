@@ -1,20 +1,23 @@
 import sys
 import threading
-from core.ports import STTProvider, AudioProvider, ActionProvider, FeedbackProvider
+from core.ports import STTProvider, AudioProvider, ActionProvider, FeedbackProvider, MediaProvider
 
 class JarvisCore:
-    def __init__(self, 
-                 audio_provider: AudioProvider, 
-                 stt_provider: STTProvider, 
+    def __init__(self,
+                 audio_provider: AudioProvider,
+                 stt_provider: STTProvider,
                  action_provider: ActionProvider,
                  feedback_provider: FeedbackProvider = None,
+                 media_provider: MediaProvider = None,
                  sample_rate: int = 16000):
         self.audio = audio_provider
         self.stt = stt_provider
         self.action = action_provider
         self.feedback = feedback_provider
+        self.media = media_provider
         self.sample_rate = sample_rate
         self.is_recording = False
+        self._media_was_playing = False
 
     def initialize(self):
         print("[*] Initializing STT Model. This may take a moment...", flush=True)
@@ -24,6 +27,8 @@ class JarvisCore:
     def start_recording(self):
         if not self.is_recording:
             self.is_recording = True
+            if self.media:
+                self._media_was_playing = self.media.pause()
             print("[Start Recording]", flush=True)
             if self.feedback:
                 self.feedback.play_sound("start")
@@ -33,6 +38,9 @@ class JarvisCore:
     def stop_and_transcribe(self):
         if self.is_recording:
             self.is_recording = False
+            if self.media and self._media_was_playing:
+                self.media.resume()
+                self._media_was_playing = False
             print("[Stop Recording. Transcribing...]", flush=True)
             if self.feedback:
                 self.feedback.play_sound("stop")

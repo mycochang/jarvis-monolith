@@ -9,6 +9,7 @@ from adapters.faster_whisper_adapter import FasterWhisperAdapter
 from adapters.sound_device_adapter import SoundDeviceAdapter
 from adapters.ydotool_adapter import YdotoolAdapter
 from adapters.desktop_notifier_adapter import DesktopNotifierAdapter
+from adapters.playerctl_adapter import PlayerctlAdapter
 
 # --- Configuration ---
 # Allow switching engine via environment variable.
@@ -44,12 +45,15 @@ def main():
     else:
         raise ValueError(f"Unknown engine: {ENGINE}")
 
+    media_adapter = PlayerctlAdapter()
+
     # 2. Inject Adapters into the Core Domain
     core = JarvisCore(
         audio_provider=audio_adapter,
         stt_provider=stt_adapter,
         action_provider=action_adapter,
         feedback_provider=feedback_adapter,
+        media_provider=media_adapter,
         sample_rate=SAMPLE_RATE
     )
     

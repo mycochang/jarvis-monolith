@@ -81,3 +81,38 @@ def test_moonshine_adapter_transcribe(mocker):
     args, kwargs = mock_transcriber.transcribe_without_streaming.call_args
     assert isinstance(args[0], list)
     assert kwargs["sample_rate"] == 16000
+
+from adapters.playerctl_adapter import PlayerctlAdapter
+
+def test_playerctl_pause_returns_true_when_playing(mocker):
+    mocker.patch("subprocess.run", side_effect=[
+        mocker.Mock(stdout="Playing\n"),   # status check
+        mocker.Mock(),                     # pause call
+    ])
+    adapter = PlayerctlAdapter()
+    assert adapter.pause() is True
+
+def test_playerctl_pause_returns_false_when_not_playing(mocker):
+    mocker.patch("subprocess.run", return_value=mocker.Mock(stdout="Paused\n"))
+    adapter = PlayerctlAdapter()
+    # Nothing playing — pause() must not call playerctl pause and must return False
+    assert adapter.pause() is False
+
+def test_playerctl_pause_returns_false_on_error(mocker):
+    mocker.patch("subprocess.run", side_effect=FileNotFoundError)
+    adapter = PlayerctlAdapter()
+    assert adapter.pause() is False
+
+def test_playerctl_resume_calls_play(mocker):
+    mock_run = mocker.patch("subprocess.run")
+    adapter = PlayerctlAdapter()
+    adapter.resume()
+    mock_run.assert_called_once_with(
+        ["playerctl", "-a", "play"],
+        capture_output=True,
+    )
+
+def test_playerctl_resume_silent_on_error(mocker):
+    mocker.patch("subprocess.run", side_effect=FileNotFoundError)
+    adapter = PlayerctlAdapter()
+    adapter.resume()  # must not raise
