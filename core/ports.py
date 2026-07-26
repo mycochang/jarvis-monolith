@@ -60,6 +60,31 @@ class ActionProvider(ABC):
         """
         ...
 
+class MediaProvider(ABC):
+    """
+    Interface for pausing and resuming media playback around dictation.
+    """
+
+    @abstractmethod
+    def pause(self) -> bool:
+        """
+        Pause any currently-playing media.
+
+        Returns:
+            bool: True if media was playing and was paused, False if nothing
+                  was playing (so the caller knows whether to resume later).
+        """
+        ...
+
+    @abstractmethod
+    def resume(self) -> None:
+        """
+        Resume media playback.  Only call this when pause() previously
+        returned True.
+        """
+        ...
+
+
 class FeedbackProvider(ABC):
     """
     Interface for providing feedback to the user.
