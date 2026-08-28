@@ -51,7 +51,7 @@ tokenizer and feature extractor built; the weights come back off page cache.
 | `JARVIS_IDLE_UNLOAD_S` | `300` | Evict after this many idle seconds; `0` = never |
 | `JARVIS_MIN_AVAILABLE_MB` | `4096` | Evict when `MemAvailable` drops below this; `0` = never |
 | `JARVIS_THREADS` | `4` | CT2 CPU threads |
-| `JARVIS_DEVICE` / `JARVIS_COMPUTE_TYPE` | `cpu` / `int8` | `cuda` + `float16` needs cuBLAS/cuDNN, not installed here |
+| `JARVIS_DEVICE` / `JARVIS_COMPUTE_TYPE` | `cpu` / `int8` | `cuda` + `float16` for GPU; requires NVIDIA with cuBLAS+cuDNN pip packages. Default is CPU — GPU is opt-in. |
 
 Measured on this box, `int8` on CPU, 8 threads:
 
@@ -66,6 +66,55 @@ latency — see [`bench/`](bench/) for the accuracy/latency numbers.
 
 To force eviction before a heavy job, restart the unit — or set a high
 `JARVIS_MIN_AVAILABLE_MB` so the watcher yields automatically under pressure.
+
+## GPU acceleration (opt-in)
+
+**How to enable:**
+```bash
+uv pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
+JARVIS_DEVICE=cuda JARVIS_COMPUTE_TYPE=float16 systemctl --user restart jarvis
+```
+
+**Display-safety — verify before enabling on your machine.**
+Prior GPU attempts crashed the compositor. Investigation on this machine found:
+
+- `renderD128` = NVIDIA RTX 3070 Mobile (driver: `nvidia`)
+- `renderD129` = AMD Radeon Vega iGPU (driver: `amdgpu`)
+- KWin/Wayland compositor uses the AMD card via KMS (`card2`) — confirmed by
+  checking open file descriptors: `kwin_wayland` holds NO fd to either render node.
+- NVIDIA VRAM at test time: 85 MiB / 8192 MiB used — essentially idle.
+- **CUDA allocation on the NVIDIA GPU is safe on this machine because the display
+  compositor runs entirely on the AMD card.**
+
+This is hardware-specific. On Optimus laptops where the compositor IS on the NVIDIA
+GPU, a large CUDA alloc exhausting VRAM can crash the desktop. Always check:
+```bash
+# which /dev/dri/card* does kwin_wayland have open?
+ls -la /proc/$(pgrep kwin_wayland)/fd | grep card
+# which render node is that card?
+ls -la /dev/dri/
+```
+
+**Measured numbers** (190s podcast audio, 25s chunks, taskset -c 8-15):
+
+| Config | WER vs captions | Min | Median |
+|---|---|---|---|
+| `base.en` beam1 CPU int8 | 21.8% | 2603ms | 2804ms |
+| `base.en` beam1 CUDA float16 | 23.9% | 485ms | 494ms |
+| `small.en` beam1 CPU int8 | 20.4% | 3500ms | 3508ms |
+| `small.en` beam1 CUDA float16 | 20.0% | 382ms | 383ms |
+
+GPU is **7–9x faster** than CPU. `small.en` on CUDA is both the most accurate and the
+fastest config — it costs 382ms median vs 3508ms on CPU.
+
+**VRAM usage** (base.en float16):
+- Before model load: 88 MiB used
+- After model load: 455 MiB used (~367 MiB allocated)
+- After inference: 473 MiB used
+
+**Fallback behavior:** if `JARVIS_DEVICE=cuda` is set but CUDA initialization fails
+(missing libs, no GPU, OOM), the adapter logs a warning and falls back to CPU/int8
+automatically — the dictation service keeps running.
 
 ## Benchmarking
 
@@ -89,11 +138,15 @@ Two traps this suite exists to avoid, both hit the hard way:
 Findings so far, on 190s of multi-speaker podcast audio (crosstalk — harder than solo
 dictation, so treat these as rankings, not absolutes):
 
-| Config | WER vs captions | Median |
-|---|---|---|
-| `base.en` beam1 | 22.3% | 1499ms |
-| `small.en` beam1 | 20.4% | 3688ms |
-| `distil-large` beam1 | 19.0% | 15490ms |
+| Config | Device | WER vs captions | Min | Median |
+|---|---|---|---|---|
+| `base.en` beam1 | CPU int8 | 21.8% | 2603ms | 2804ms |
+| `base.en` beam1 | CUDA float16 | 23.9% | 485ms | 494ms |
+| `small.en` beam1 | CPU int8 | 20.4% | 3500ms | 3508ms |
+| `small.en` beam1 | CUDA float16 | **20.0%** | **382ms** | **383ms** |
+| `distil-large` beam1 | CPU int8 | 19.0% | — | 15490ms |
+
+GPU configs run with `taskset -c 8-15 python bench/bench.py run --configs "base.en:1:cuda:float16,small.en:1:cuda:float16"`
 
 **`beam_size` is not worth paying for.** Beam 3 and 5 measured no better than beam 1 at
 either model size (and slightly worse, within noise) while costing up to 1.6x the time.

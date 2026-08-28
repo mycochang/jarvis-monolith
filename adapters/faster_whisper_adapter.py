@@ -19,6 +19,31 @@ def _mem_available_mb() -> int:
     return 1 << 30
 
 
+def _ensure_cuda_libs_on_path() -> None:
+    """Re-exec with LD_LIBRARY_PATH patched so pip-installed cuBLAS/cuDNN are findable."""
+    _PATCHED = "_JARVIS_LD_PATCHED"
+    if os.environ.get(_PATCHED):
+        return
+    import site
+    dirs = []
+    for sp in site.getsitepackages():
+        nvidia_root = os.path.join(sp, "nvidia")
+        if os.path.isdir(nvidia_root):
+            for pkg in sorted(os.listdir(nvidia_root)):
+                lib = os.path.join(nvidia_root, pkg, "lib")
+                if os.path.isdir(lib):
+                    dirs.append(lib)
+    if not dirs:
+        return
+    existing = os.environ.get("LD_LIBRARY_PATH", "")
+    parts = dirs + ([existing] if existing else [])
+    env = os.environ.copy()
+    env["LD_LIBRARY_PATH"] = ":".join(parts)
+    env[_PATCHED] = "1"
+    import sys
+    os.execve(sys.executable, [sys.executable] + sys.argv, env)
+
+
 class FasterWhisperAdapter(STTProvider):
     """Keeps CTranslate2 weights resident, but evicts them when idle or when the box
     needs the RAM back. Eviction calls ct2's unload_model() rather than dropping the
@@ -49,13 +74,35 @@ class FasterWhisperAdapter(STTProvider):
 
     def load_model(self) -> None:
         with self._lock:
-            self.model = WhisperModel(
-                model_size_or_path=self.model_size,
-                device=self.device,
-                compute_type=self.compute_type,
-                cpu_threads=self.cpu_threads,
-                download_root="models",
-            )
+            if self.device == "cuda":
+                _ensure_cuda_libs_on_path()
+                try:
+                    self.model = WhisperModel(
+                        model_size_or_path=self.model_size,
+                        device=self.device,
+                        compute_type=self.compute_type,
+                        cpu_threads=self.cpu_threads,
+                        download_root="models",
+                    )
+                except Exception as e:
+                    print(f"[!] CUDA init failed ({e}), falling back to CPU/int8.", flush=True)
+                    self.device = "cpu"
+                    self.compute_type = "int8"
+                    self.model = WhisperModel(
+                        model_size_or_path=self.model_size,
+                        device="cpu",
+                        compute_type="int8",
+                        cpu_threads=self.cpu_threads,
+                        download_root="models",
+                    )
+            else:
+                self.model = WhisperModel(
+                    model_size_or_path=self.model_size,
+                    device=self.device,
+                    compute_type=self.compute_type,
+                    cpu_threads=self.cpu_threads,
+                    download_root="models",
+                )
             self._last_used = time.monotonic()
 
         if self.idle_unload_s > 0 or self.min_available_mb > 0:
@@ -142,7 +189,33 @@ def demo() -> None:
     t0 = time.monotonic()
     adapter.transcribe(audio, 16000)
     assert adapter.resident, "transcribe must self-heal after eviction"
-    print(f"OK hot={hot}MB evicted={cold}MB reload+infer={time.monotonic() - t0:.2f}s")
+    print(f"OK cpu hot={hot}MB evicted={cold}MB reload+infer={time.monotonic() - t0:.2f}s")
+
+    # CUDA path (opt-in, skip gracefully if unavailable)
+    try:
+        import ctranslate2
+        if ctranslate2.get_cuda_device_count() < 1:
+            print("SKIP: no CUDA device")
+            return
+    except Exception:
+        print("SKIP: ctranslate2 unavailable")
+        return
+
+    _ensure_cuda_libs_on_path()
+    cuda_adapter = FasterWhisperAdapter(
+        model_size=os.environ.get("JARVIS_MODEL", "Systran/faster-whisper-small.en"),
+        device="cuda",
+        compute_type="float16",
+        cpu_threads=8,
+        idle_unload_s=0,
+        min_available_mb=0,
+    )
+    cuda_adapter.load_model()
+    # After load_model(), device may have fallen back to cpu if CUDA init failed.
+    effective = cuda_adapter.device
+    t0 = time.monotonic()
+    cuda_adapter.transcribe(audio, 16000)
+    print(f"OK cuda({effective}) infer={time.monotonic() - t0:.2f}s")
 
 
 if __name__ == "__main__":
